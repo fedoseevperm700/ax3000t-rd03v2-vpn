@@ -42,9 +42,11 @@ jobs:
           mkdir -p out
           cp $BIN/*xiaomi_mi-router-ax3000t-v2*initramfs-uImage.itb out/
           cp $BIN/*xiaomi_mi-router-ax3000t-v2*squashfs-sysupgrade.bin out/
+          # для обновления без UART, по SSH (docs/no-uart-reflash.md порта)
+          cp $BIN/*xiaomi_mi-router-ax3000t-v2*initramfs-factory.ubi out/ || true
           cp $BIN/*xiaomi_mi-router-ax3000t-v2*.manifest out/ || true
           cp work/rd03v2/openwrt/.config out/build.config
-          (cd out && sha256sum *.itb *.bin > sha256sums.txt)
+          (cd out && sha256sum *.itb *.bin *.ubi 2>/dev/null > sha256sums.txt)
           ls -l out
           cat out/sha256sums.txt
           echo "tag=build-$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
