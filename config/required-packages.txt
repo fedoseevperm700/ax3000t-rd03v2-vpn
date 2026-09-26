@@ -1,0 +1,15 @@
+# Пакеты, без которых сборку считаем неудачной.
+# build-custom.sh проверяет, что каждый из них в .config стоит как =y.
+kmod-amneziawg
+amneziawg-tools
+luci-proto-amneziawg
+podkop
+luci-app-podkop
+sing-box
+kmod-nft-tproxy
+luci
+luci-i18n-base-ru
+luci-i18n-podkop-ru
+luci-i18n-amneziawg-ru
+wpad-mbedtls
+kmod-ath11k-smallbuffers

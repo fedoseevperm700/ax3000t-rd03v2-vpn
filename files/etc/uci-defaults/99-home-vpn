@@ -1,0 +1,21 @@
+#!/bin/sh
+# Выполняется один раз при первой загрузке прошивки.
+
+# Часовой пояс: Пермь / Екатеринбург (UTC+5)
+uci set system.@system[0].zonename='Asia/Yekaterinburg'
+uci set system.@system[0].timezone='<+05>-5'
+uci commit system
+
+# Интерфейс LuCI на русском
+uci set luci.main.lang='ru'
+uci commit luci
+
+# Ночная перезагрузка в 05:00 (из ТЗ).
+# sleep 70 + touch /etc/banner — стандартный приём OpenWrt, чтобы после
+# перезагрузки часы не оказались «раньше» 05:00 и роутер не ушёл в цикл.
+if ! grep -q 'reboot' /etc/crontabs/root 2>/dev/null; then
+	echo '0 5 * * * sleep 70 && touch /etc/banner && reboot' >> /etc/crontabs/root
+fi
+/etc/init.d/cron enable
+
+exit 0
