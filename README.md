@@ -10,7 +10,7 @@
 | --- | --- |
 | Основа | порт [ADCDS/openwrt-xiaomi-ax3000t-rd03v2](https://github.com/ADCDS/openwrt-xiaomi-ax3000t-rd03v2) @ `9e1d2d4`, OpenWrt snapshot, ядро 6.12.94 |
 | AmneziaWG | [maksimkurb/awg-openwrt](https://github.com/maksimkurb/awg-openwrt) v25.12.5: kmod v3.1.20260906, tools v3.1.20260812, luci-proto v3.1.1 |
-| Podkop | [itdoginfo/podkop](https://github.com/itdoginfo/podkop) 0.7.22 + sing-box 1.14.0 (без Tailscale и gVisor) |
+| Podkop | [itdoginfo/podkop](https://github.com/itdoginfo/podkop) 0.7.22 + sing-box 1.14.0 (без Tailscale и gVisor) — **отдельными пакетами**, ставятся после прошивки |
 | Интерфейс | LuCI на русском |
 | Настройки первого запуска | часовой пояс Asia/Yekaterinburg, перезагрузка каждый день в 05:00 |
 
@@ -29,8 +29,20 @@
 
 - `…-initramfs-uImage.itb` — загружается в память по TFTP (через UART). Из неё выполняется запись.
 - `…-squashfs-sysupgrade.bin` — основная прошивка. Записывается командой `sysupgrade -n` **только из initramfs**, никогда из уже установленной системы.
+- `podkop-packages.tar.gz` — Podkop, sing-box и их веб-интерфейс, собранные вместе с этой прошивкой.
 - `sha256sums.txt` — контрольные суммы.
 - `build.config` — полная конфигурация сборки.
+
+### Почему Podkop не внутри прошивки
+
+sing-box весит ~13 МБ. Внутри образа он раздувал временную систему (initramfs) до 29 МБ, и ей не хватало оперативной памяти, чтобы принять основную прошивку. Поэтому в образе только всё, что связано с ядром (AmneziaWG, TPROXY, TUN) и мелкие зависимости, а Podkop ставится одной командой после первой загрузки:
+
+```sh
+# с компьютера: scp -O podkop-packages.tar.gz root@192.168.1.1:/tmp/
+podkop-install /tmp/podkop-packages.tar.gz
+```
+
+Интернет для этого не нужен. Сборка проверяет, что initramfs не больше 20 МБ.
 
 Порядок прошивки (UART, TFTP-восстановление с `recovery.bin` 2.0.28, загрузка в RAM, запись в NAND) — в README порта ADCDS.
 

@@ -60,23 +60,24 @@ mkdir -p files
 cp -a "$HERE/files/." files/
 find files -type d -exec chmod 755 {} +
 find files -type f -exec chmod 644 {} +
-chmod 755 files/etc/uci-defaults/*
+chmod 755 files/etc/uci-defaults/* files/usr/bin/*
 
 log "Дописываю конфигурацию пакетов"
 cat "$HERE/config/custom.config" >> .config
 make defconfig
 
-log "Проверяю, что нужные пакеты попали в образ (=y)"
-missing=""
-while read -r pkg; do
+log "Проверяю состав: =y — в образе, =m — отдельным пакетом"
+bad=""
+while read -r pkg want; do
 	case "$pkg" in ''|\#*) continue ;; esac
-	grep -q "^CONFIG_PACKAGE_${pkg}=y\$" .config || missing="$missing $pkg"
+	have=$(sed -n "s/^CONFIG_PACKAGE_${pkg}=\(.\)\$/\1/p" .config)
+	[ "$have" = "$want" ] || bad="$bad ${pkg}(нужно=${want},есть=${have:-нет})"
 done < "$HERE/config/required-packages.txt"
-if [ -n "$missing" ]; then
-	echo "ОШИБКА: не попали в образ:$missing" >&2
+if [ -n "$bad" ]; then
+	echo "ОШИБКА: состав не совпадает:$bad" >&2
 	exit 1
 fi
-echo "Все обязательные пакеты на месте."
+echo "Состав пакетов совпадает с required-packages.txt."
 
 if [ "${PREPARE_ONLY:-0}" = "1" ]; then
 	log "PREPARE_ONLY=1: исходники и .config готовы в $PWD, компиляцию пропускаю"

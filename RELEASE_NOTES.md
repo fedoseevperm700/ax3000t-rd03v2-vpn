@@ -5,6 +5,7 @@
 Файлы:
 - `*-initramfs-uImage.itb` — загружается в память по TFTP через UART; с неё запускается запись.
 - `*-squashfs-sysupgrade.bin` — основная прошивка; записывается командой `sysupgrade -n` **из initramfs**, не из установленной системы.
+- `podkop-packages.tar.gz` — Podkop + sing-box; после прошивки: скопировать в /tmp и выполнить `podkop-install /tmp/podkop-packages.tar.gz`.
 - `sha256sums.txt` — контрольные суммы.
 
-Внутри: порт ADCDS/openwrt-xiaomi-ax3000t-rd03v2 (@9e1d2d4), AmneziaWG 3.1 (kmod v3.1.20260906, luci-proto-amneziawg v3.1.1), Podkop 0.7.22 + sing-box, LuCI на русском, часовой пояс Asia/Yekaterinburg, перезагрузка в 05:00.
+Внутри: порт ADCDS/openwrt-xiaomi-ax3000t-rd03v2 (@9e1d2d4), AmneziaWG 3.1 (kmod v3.1.20260906, luci-proto-amneziawg v3.1.1), Podkop 0.7.22 + sing-box (отдельным архивом), LuCI на русском, часовой пояс Asia/Yekaterinburg, перезагрузка в 05:00.

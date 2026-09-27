@@ -1,15 +1,24 @@
 # Пакеты, без которых сборку считаем неудачной.
-# build-custom.sh проверяет, что каждый из них в .config стоит как =y.
-kmod-amneziawg
-amneziawg-tools
-luci-proto-amneziawg
-podkop
-luci-app-podkop
-sing-box
-kmod-nft-tproxy
-luci
-luci-i18n-base-ru
-luci-i18n-podkop-ru
-luci-i18n-amneziawg-ru
-wpad-mbedtls
-kmod-ath11k-smallbuffers
+# Формат: <пакет> <y|m>
+#   y — обязан быть внутри прошивки
+#   m — собирается отдельным .apk и выкладывается в релиз
+kmod-amneziawg y
+amneziawg-tools y
+luci-proto-amneziawg y
+luci-i18n-amneziawg-ru y
+luci y
+luci-i18n-base-ru y
+wpad-mbedtls y
+kmod-ath11k-smallbuffers y
+kmod-nft-tproxy y
+kmod-tun y
+kmod-inet-diag y
+curl y
+jq y
+coreutils-base64 y
+bind-dig y
+ca-bundle y
+sing-box m
+podkop m
+luci-app-podkop m
+luci-i18n-podkop-ru m

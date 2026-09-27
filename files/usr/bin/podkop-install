@@ -1,0 +1,13 @@
+#!/bin/sh
+# Ставит Podkop и sing-box из архива podkop-packages.tar.gz того же релиза.
+# Использование: скопировать архив в /tmp и выполнить
+#   podkop-install /tmp/podkop-packages.tar.gz
+set -e
+ARCHIVE="${1:-/tmp/podkop-packages.tar.gz}"
+[ -f "$ARCHIVE" ] || { echo "Нет файла $ARCHIVE"; exit 1; }
+DIR=/tmp/podkop-apk
+rm -rf "$DIR"; mkdir -p "$DIR"
+tar xzf "$ARCHIVE" -C "$DIR"
+apk add --allow-untrusted "$DIR"/*.apk
+rm -rf "$DIR"
+echo "Готово. Обновите страницу LuCI (Ctrl+F5): появится раздел «Службы → Podkop»."

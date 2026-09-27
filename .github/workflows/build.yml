@@ -46,7 +46,24 @@ jobs:
           cp $BIN/*xiaomi_mi-router-ax3000t-v2*initramfs-factory.ubi out/ || true
           cp $BIN/*xiaomi_mi-router-ax3000t-v2*.manifest out/ || true
           cp work/rd03v2/openwrt/.config out/build.config
-          (cd out && sha256sum *.itb *.bin *.ubi 2>/dev/null > sha256sums.txt)
+
+          # Podkop + sing-box — отдельные пакеты для установки после прошивки
+          mkdir -p out/podkop-apk
+          for p in sing-box podkop luci-app-podkop luci-i18n-podkop-ru; do
+            f=$(find work/rd03v2/openwrt/bin/packages -name "${p}-[0-9]*.apk" | head -1)
+            [ -n "$f" ] || { echo "ОШИБКА: нет пакета $p" >&2; exit 1; }
+            cp "$f" out/podkop-apk/
+          done
+          (cd out/podkop-apk && tar czf ../podkop-packages.tar.gz *.apk)
+          rm -rf out/podkop-apk
+
+          # Защита от раздувания: временной системе в RAM нужен запас памяти
+          # на приём основной прошивки (у исходной сборки ~14 МБ).
+          ITB=$(stat -c %s out/*initramfs-uImage.itb)
+          echo "initramfs: $((ITB/1024/1024)) МБ"
+          [ "$ITB" -le $((20*1024*1024)) ] || { echo "ОШИБКА: initramfs больше 20 МБ" >&2; exit 1; }
+
+          (cd out && sha256sum *.itb *.bin *.ubi *.tar.gz 2>/dev/null > sha256sums.txt)
           ls -l out
           cat out/sha256sums.txt
           echo "tag=build-$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
