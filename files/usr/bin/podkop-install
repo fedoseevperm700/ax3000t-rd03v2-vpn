@@ -8,6 +8,6 @@ ARCHIVE="${1:-/tmp/podkop-packages.tar.gz}"
 DIR=/tmp/podkop-apk
 rm -rf "$DIR"; mkdir -p "$DIR"
 tar xzf "$ARCHIVE" -C "$DIR"
-apk add --allow-untrusted "$DIR"/*.apk
+apk add --no-network --allow-untrusted "$DIR"/*.apk
 rm -rf "$DIR"
 echo "Готово. Обновите страницу LuCI (Ctrl+F5): появится раздел «Службы → Podkop»."
