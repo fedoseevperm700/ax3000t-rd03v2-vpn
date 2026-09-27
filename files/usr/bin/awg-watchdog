@@ -1,0 +1,19 @@
+#!/bin/sh
+# Перезапускает туннель AmneziaWG, если он «завис»: нет свежего рукопожатия.
+# Запускается из cron каждые 5 минут. Требует PersistentKeepalive у пира.
+IF="${1:-awg0}"
+LIMIT=300
+
+ifstatus "$IF" >/dev/null 2>&1 || exit 0
+[ "$(uci -q get network.$IF.disabled)" = "1" ] && exit 0
+
+# Пока часы не синхронизированы (NTP), сравнивать время бессмысленно
+[ "$(date +%Y)" -lt 2026 ] && exit 0
+
+ts=$(awg show "$IF" latest-handshakes 2>/dev/null | awk '{print $2}' | sort -n | tail -1)
+now=$(date +%s)
+
+if [ -z "$ts" ] || [ "$ts" -eq 0 ] || [ $((now - ts)) -gt $LIMIT ]; then
+	logger -t awg-watchdog "$IF: нет рукопожатия ${ts:+$((now - ts)) с}, перезапуск"
+	ifdown "$IF"; sleep 3; ifup "$IF"
+fi

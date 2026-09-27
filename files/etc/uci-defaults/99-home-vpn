@@ -16,6 +16,10 @@ uci commit luci
 if ! grep -q 'reboot' /etc/crontabs/root 2>/dev/null; then
 	echo '0 5 * * * sleep 70 && touch /etc/banner && reboot' >> /etc/crontabs/root
 fi
+# Сторож туннеля AmneziaWG каждые 5 минут
+if ! grep -q 'awg-watchdog' /etc/crontabs/root 2>/dev/null; then
+	echo '*/5 * * * * /usr/bin/awg-watchdog awg0' >> /etc/crontabs/root
+fi
 /etc/init.d/cron enable
 
 exit 0
