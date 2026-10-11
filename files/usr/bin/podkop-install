@@ -10,4 +10,12 @@ rm -rf "$DIR"; mkdir -p "$DIR"
 tar xzf "$ARCHIVE" -C "$DIR"
 apk add --no-network --allow-untrusted "$DIR"/*.apk
 rm -rf "$DIR"
+# sing-box: более частая сборка мусора Go, меньше пиков памяти (в RAM ~180 МБ)
+F=/etc/init.d/sing-box
+grep -q GOMEMLIMIT $F || sed -i 's/^\tprocd_set_param respawn$/&\n\tprocd_set_param env GOGC=50 GOMEMLIMIT=32MiB/' $F
+grep -q GOMEMLIMIT $F || echo "Внимание: не удалось добавить GOMEMLIMIT в $F"
+# QUIC через sing-box на IPQ5018 упирается в CPU: UDP-сокеты переполняются,
+# теряется 4-13% пакетов (YouTube). Без QUIC клиенты уходят на TCP.
+# Касается только трафика через Podkop, прямой QUIC не трогаем.
+uci -q get podkop.settings >/dev/null && { uci set podkop.settings.disable_quic=1; uci commit podkop; }
 echo "Готово. Обновите страницу LuCI (Ctrl+F5): появится раздел «Службы → Podkop»."

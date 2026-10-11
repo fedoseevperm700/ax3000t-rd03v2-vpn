@@ -60,7 +60,7 @@ mkdir -p files
 cp -a "$HERE/files/." files/
 find files -type d -exec chmod 755 {} +
 find files -type f -exec chmod 644 {} +
-chmod 755 files/etc/uci-defaults/* files/usr/bin/*
+chmod 755 files/etc/uci-defaults/* files/etc/init.d/* files/usr/bin/*
 
 log "Дописываю конфигурацию пакетов"
 cat "$HERE/config/custom.config" >> .config
