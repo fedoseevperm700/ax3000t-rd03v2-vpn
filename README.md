@@ -49,6 +49,7 @@ podkop-install /tmp/podkop-packages.tar.gz
 - **Аварийный выключатель** (`vpn-killswitch`): служба каждые 5 с проверяет, что sing-box запущен, туннель `awg0` получал handshake за последние 3 минуты и DNS Podkop отдаёт fakeip (`198.18.x.x`) для `claude.ai`. Если нет — из LAN закрыто всё, кроме самой LAN и `awg0` (IPv4 и IPv6). При загрузке интернет закрыт, пока Podkop не заработает. Вручную: `vpn-killswitch on | off | check`. Домен для проверки должен быть в списках Podkop. Нужен `persistent_keepalive` на awg0.
 - **Буферы сокетов** (`/etc/sysctl.d/90-lowmem.conf`): по умолчанию ядро разрешает им до ~50 МБ при ~60 МБ памяти, доступной программам; ограничено до 8 МБ (UDP) и 12 МБ (TCP).
 - **sing-box**: `podkop-install` добавляет `GOGC=50 GOMEMLIMIT=32MiB`, чтобы сборщик мусора Go не давал пиков.
+- **QUIC через VPN отключён** (`podkop.settings.disable_quic=1`, ставит `podkop-install`): sing-box обрабатывает QUIC попакетно и на IPQ5018 не успевает — при YouTube терялось 4–13% UDP. Через TCP потерь нет, sing-box грузит CPU на 0–4% вместо 30–54%. Сайты напрямую QUIC используют как раньше.
 - **Журнал памяти**: `/tmp/memlog.txt`, запись раз в 5 минут; `kern` — память ядра вне процессов и slab. Если она растёт часами — утечка в драйверах.
 
 Порядок прошивки (UART, TFTP-восстановление с `recovery.bin` 2.0.28, загрузка в RAM, запись в NAND) — в README порта ADCDS.
