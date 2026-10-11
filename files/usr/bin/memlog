@@ -1,0 +1,14 @@
+#!/bin/sh
+# Журнал памяти раз в 5 минут (cron): /tmp/memlog.txt, последние 600 строк (~2 суток).
+# kern = память ядра вне slab/процессов (драйверы, буферы сокетов), МБ.
+L=/tmp/memlog.txt
+m() { awk -v k="$1:" '$1==k{print int($2/1024)}' /proc/meminfo; }
+tot=$(m MemTotal); fr=$(m MemFree); av=$(m MemAvailable); an=$(m AnonPages)
+ca=$(m Cached); sl=$(m Slab); pt=$(m PageTables); ks=$(m KernelStack); vm=$(m VmallocUsed)
+kern=$((tot - fr - an - ca - sl - pt - ks - vm))
+sb=$(awk '/VmRSS/{print int($2/1024)}' /proc/$(pidof sing-box | cut -d' ' -f1)/status 2>/dev/null)
+tcp=$(awk '/^TCP:/{print int($NF*4/1024)}' /proc/net/sockstat)
+udp=$(awk '/^UDP:/{print int($NF*4/1024)}' /proc/net/sockstat)
+ct=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
+echo "$(date '+%m-%d %H:%M') avail=$av free=$fr anon=$an slab=$sl kern=$kern singbox=${sb:-DEAD} tcp=$tcp udp=$udp ct=$ct" >> $L
+[ $(wc -l < $L) -gt 600 ] && { tail -n 600 $L > $L.n; mv $L.n $L; }

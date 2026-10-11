@@ -20,11 +20,15 @@ fi
 if ! grep -q 'awg-watchdog' /etc/crontabs/root 2>/dev/null; then
 	echo '*/5 * * * * /usr/bin/awg-watchdog awg0' >> /etc/crontabs/root
 fi
-# Аварийный выключатель: проверка Podkop каждую минуту
+# Аварийный выключатель: служба проверяет Podkop каждые 5 с, cron — запасная проверка
 if ! grep -q 'vpn-killswitch' /etc/crontabs/root 2>/dev/null; then
 	echo '* * * * * /usr/bin/vpn-killswitch check' >> /etc/crontabs/root
 fi
 /etc/init.d/vpn-killswitch enable
+# Журнал памяти раз в 5 минут: /tmp/memlog.txt
+if ! grep -q 'memlog' /etc/crontabs/root 2>/dev/null; then
+	echo '*/5 * * * * /usr/bin/memlog' >> /etc/crontabs/root
+fi
 /etc/init.d/cron enable
 
 exit 0

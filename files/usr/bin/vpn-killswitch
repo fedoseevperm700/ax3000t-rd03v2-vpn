@@ -1,9 +1,10 @@
 #!/bin/sh
-# Аварийный выключатель: если Podkop не работает, LAN не выходит в интернет
-# мимо VPN. Подключения к собственному VPN-серверу разрешены всегда.
-#   vpn-killswitch on | off | check (по умолчанию check, вызывается из cron)
+# Аварийный выключатель: если Podkop/туннель не работает, LAN не выходит в интернет.
+#   vpn-killswitch on | off | check | loop
 T=killswitch
-VPN_SERVER="$(uci -q get network.@amneziawg_awg0[0].endpoint_host)"
+INTERVAL=5          # секунд между проверками в режиме loop
+PROBE=claude.ai     # домен, который ОБЯЗАТЕЛЬНО есть в списках Podkop
+LAN_IFS='"br-lan"'  # добавь сюда гостевые мосты, если есть: '"br-lan", "br-guest"'
 
 ensure_table() {
 	nft list table inet $T >/dev/null 2>&1 && return 0
@@ -21,32 +22,39 @@ engaged() { nft list chain inet $T forward 2>/dev/null | grep -q reject; }
 ks_on() {
 	ensure_table
 	engaged && return 0
-	{
-		echo "flush chain inet $T forward"
-		[ -n "$VPN_SERVER" ] && echo "add rule inet $T forward ip daddr $VPN_SERVER accept"
-		echo "add rule inet $T forward iifname \"br-lan\" oifname \"wan\" counter reject"
-	} | nft -f -
-	logger -t killswitch "ВКЛ: Podkop не работает, интернет для LAN закрыт"
+	# Не завязано на имя WAN: из LAN разрешено только в LAN и в туннель
+	nft -f - <<NFT
+flush chain inet $T forward
+add rule inet $T forward iifname { $LAN_IFS } oifname != { $LAN_IFS, "awg0" } counter reject
+NFT
+	# Рвём уже установленные соединения (в т.ч. ушедшие в flow offload)
+	command -v conntrack >/dev/null && conntrack -F >/dev/null 2>&1
+	logger -t killswitch "ВКЛ: VPN не работает, интернет для LAN закрыт"
 }
 
 ks_off() {
 	ensure_table
 	engaged || return 0
 	nft flush chain inet $T forward
-	logger -t killswitch "ВЫКЛ: Podkop работает, интернет открыт"
+	logger -t killswitch "ВЫКЛ: VPN работает, интернет открыт"
 }
 
 healthy() {
-	/etc/init.d/podkop enabled 2>/dev/null || return 1
 	pidof sing-box >/dev/null || return 1
-	# Контрольный домен должен получать адрес-метку Podkop (198.18.x.x)
-	nslookup claude.ai 127.0.0.1 2>/dev/null | grep -q '198\.18\.' || return 1
+	# Туннель живой: последний handshake не старше 3 минут
+	hs=$(awg show awg0 latest-handshakes 2>/dev/null | awk '{print $2}' | sort -n | tail -1)
+	[ -n "$hs" ] && [ "$hs" -gt 0 ] && [ $(( $(date +%s) - hs )) -lt 180 ] || return 1
+	# DNS Podkop отдаёт fakeip
+	nslookup $PROBE 127.0.0.1 2>/dev/null | grep -q '198\.18\.' || return 1
 	return 0
 }
+
+check() { if healthy; then ks_off; else ks_on; fi; }
 
 case "${1:-check}" in
 	on) ks_on ;;
 	off) ks_off ;;
-	check) if healthy; then ks_off; else ks_on; fi ;;
-	*) echo "usage: $0 on|off|check"; exit 1 ;;
+	check) check ;;
+	loop) while :; do check; sleep $INTERVAL; done ;;
+	*) echo "usage: $0 on|off|check|loop"; exit 1 ;;
 esac
