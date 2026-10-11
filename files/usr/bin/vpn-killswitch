@@ -1,0 +1,52 @@
+#!/bin/sh
+# Аварийный выключатель: если Podkop не работает, LAN не выходит в интернет
+# мимо VPN. Подключения к собственному VPN-серверу разрешены всегда.
+#   vpn-killswitch on | off | check (по умолчанию check, вызывается из cron)
+T=killswitch
+VPN_SERVER="$(uci -q get network.@amneziawg_awg0[0].endpoint_host)"
+
+ensure_table() {
+	nft list table inet $T >/dev/null 2>&1 && return 0
+	nft -f - <<NFT
+table inet $T {
+	chain forward {
+		type filter hook forward priority -5; policy accept;
+	}
+}
+NFT
+}
+
+engaged() { nft list chain inet $T forward 2>/dev/null | grep -q reject; }
+
+ks_on() {
+	ensure_table
+	engaged && return 0
+	{
+		echo "flush chain inet $T forward"
+		[ -n "$VPN_SERVER" ] && echo "add rule inet $T forward ip daddr $VPN_SERVER accept"
+		echo "add rule inet $T forward iifname \"br-lan\" oifname \"wan\" counter reject"
+	} | nft -f -
+	logger -t killswitch "ВКЛ: Podkop не работает, интернет для LAN закрыт"
+}
+
+ks_off() {
+	ensure_table
+	engaged || return 0
+	nft flush chain inet $T forward
+	logger -t killswitch "ВЫКЛ: Podkop работает, интернет открыт"
+}
+
+healthy() {
+	/etc/init.d/podkop enabled 2>/dev/null || return 1
+	pidof sing-box >/dev/null || return 1
+	# Контрольный домен должен получать адрес-метку Podkop (198.18.x.x)
+	nslookup claude.ai 127.0.0.1 2>/dev/null | grep -q '198\.18\.' || return 1
+	return 0
+}
+
+case "${1:-check}" in
+	on) ks_on ;;
+	off) ks_off ;;
+	check) if healthy; then ks_off; else ks_on; fi ;;
+	*) echo "usage: $0 on|off|check"; exit 1 ;;
+esac

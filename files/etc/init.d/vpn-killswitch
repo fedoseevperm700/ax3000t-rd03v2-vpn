@@ -1,0 +1,7 @@
+#!/bin/sh /etc/rc.common
+# При загрузке закрываем интернет для LAN до тех пор, пока Podkop не заработает.
+# Открывает его cron-проверка (vpn-killswitch check, каждую минуту).
+START=20
+start() {
+	/usr/bin/vpn-killswitch on
+}

@@ -20,6 +20,11 @@ fi
 if ! grep -q 'awg-watchdog' /etc/crontabs/root 2>/dev/null; then
 	echo '*/5 * * * * /usr/bin/awg-watchdog awg0' >> /etc/crontabs/root
 fi
+# Аварийный выключатель: проверка Podkop каждую минуту
+if ! grep -q 'vpn-killswitch' /etc/crontabs/root 2>/dev/null; then
+	echo '* * * * * /usr/bin/vpn-killswitch check' >> /etc/crontabs/root
+fi
+/etc/init.d/vpn-killswitch enable
 /etc/init.d/cron enable
 
 exit 0
